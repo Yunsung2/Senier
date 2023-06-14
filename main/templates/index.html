@@ -6,15 +6,23 @@
 <html lang="en">
 <head>
     <!-- Bootswatch(Flatly) CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="path/to/chartjs.css">
+    <script src="path/to/chartjs.js"></script>
     <link rel="stylesheet" href="/static/bootstrap.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
     <!-- Table Sorting CSS -->
     <link rel="stylesheet" href="/static/tablesort.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.8.2/css/all.min.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <!-- favicon.ico 404 Error Solution -->
     <link rel="shortcut icon" href="#">
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
     <title>실시간 코인 가격</title>
     <!-- 검색기능 때문에 th에서 td로 교체하면서 style 추가(bold) -->
     <style>
@@ -30,7 +38,28 @@
         #li-right{
             margin-left:auto;
         }
-        </style>
+    </style>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        td#averageValue, td#stdDeviationValue {
+            font-weight: bold;
+        }
+    </style>
+    
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
@@ -47,11 +76,9 @@
                     <span class="visually-hidden">(current)</span>
                 </a>
             </li>
-            
-
         </ul>
         <form class="d-flex">
-            <input class="form-control me-sm-2" type="text" placeholder="Enter English name" id="myInput" onkeyup="tableSearch()">
+            <input class="form-control me-sm-2" type="text" placeholder="Enter" id="myInput" onkeyup="tableSearch()">
         </form>
     </div>
     </nav>
@@ -80,9 +107,414 @@
         <div class="badge bg-primary text-wrap" style="width: 10rem;">
             <a>Exchange Rate : {{usd_price}}</a>
         </div>
-        <br>
-        <div id="myTabContent" class="tab-content">
+        <br><br>
+        <div style="width: 900px; height: 900px;">
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <img src="/static/bitcoin_symbol.png" alt="Bitcoin Symbol" class="coin-symbol" width="30">
+                                    비트코인
+                                    <div class="btn-group" role="group">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" data-bs-target="#bitcoinDropdown" aria-haspopup="true" aria-expanded="false">
+                                                Select Duration
+                                            </button>
+                                            <div class="dropdown-menu" id="bitcoinDropdown" aria-labelledby="bitcoinDropdown">
+                                                <a class="dropdown-item" href="#" onclick="showMovingAverage('bitcoinChart', 7)">7-day Chart</a>
+                                                <a class="dropdown-item" href="#" onclick="showMovingAverage('bitcoinChart', 30)">30-day Chart</a>
+                                                <a class="dropdown-item" href="#" onclick="showMovingAverage('bitcoinChart', 90)">90-day Chart</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <br><br>
+                                    <div class="card">
+                                        <div style="padding: 10px;">
+                                            {% for upbit_key, upbit_value in upbit_price.items %}
+                                                {% if upbit_key == 'KRW-BTC' %}
+                                                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                                                        <div style="width: 120px;">
+                                                            <strong>현재 가격:</strong>
+                                                        </div>
+                                                        <div>
+                                                            &#8361;<span style="font-size: 18px; font-weight: bold;">{{ upbit_value }}</span>
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </h5>
+                                <canvas id="bitcoinChart"></canvas>
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Statistics</th>
+                                            <th>Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Standard Deviation</td>
+                                            <td>&#8361;<span id="bitcoinStdDev"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Mean</td>
+                                            <td>&#8361;<span id="bitcoinMean"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Volatility</td>
+                                            <td><span id="bitcoinVolatility"></span>%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <br><br>
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <img src="/static/ethereum_symbol.png" alt="Ethereum Symbol" class="coin-symbol" width="30">
+                                    이더리움
+                                    <div class="btn-group" role="group">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" data-bs-target="#bitcoinDropdown" aria-haspopup="true" aria-expanded="false">
+                                                Select Duration
+                                            </button>
+                                            <div class="dropdown-menu" id="ethereumDropdown" aria-labelledby="bitcoinDropdown">
+                                                <a class="dropdown-item" href="#" onclick="showMovingAverage('ethereumChart', 7)">7-day Chart</a>
+                                                <a class="dropdown-item" href="#" onclick="showMovingAverage('ethereumChart', 30)">30-day Chart</a>
+                                                <a class="dropdown-item" href="#" onclick="showMovingAverage('ethereumChart', 90)">90-day Chart</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <br><br>
+                                    <div class="card">
+                                        <div style="padding: 10px;">
+                                            {% for upbit_key, upbit_value in upbit_price.items %}
+                                                {% if upbit_key == 'KRW-ETH' %}
+                                                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                                                        <div style="width: 120px;">
+                                                            <strong>현재 가격:</strong>
+                                                        </div>
+                                                        <div>
+                                                            &#8361;<span style="font-size: 18px; font-weight: bold;">{{ upbit_value }}</span>
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </h5>
+                                <canvas id="ethereumChart"></canvas>
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Statistics</th>
+                                            <th>Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Standard Deviation</td>
+                                            <td>&#8361;<span id="ethereumStdDev"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Mean</td>
+                                            <td>&#8361;<span id="ethereumMean"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Volatility</td>
+                                            <td><span id="ethereumVolatility"></span>%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <br><br>
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <img src="/static/ripple_symbol.jpg" alt="Ethereum Symbol" class="coin-symbol" width="30">
+                                    리플
+                                    <div class="btn-group" role="group">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" data-bs-target="#bitcoinDropdown" aria-haspopup="true" aria-expanded="false">
+                                                Select Duration
+                                            </button>
+                                            <div class="dropdown-menu" id="rippleDropdown" aria-labelledby="bitcoinDropdown">
+                                                <a class="dropdown-item" href="#" onclick="showMovingAverage('rippleChart', 7)">7-day Chart</a>
+                                                <a class="dropdown-item" href="#" onclick="showMovingAverage('rippleChart', 30)">30-day Chart</a>
+                                                <a class="dropdown-item" href="#" onclick="showMovingAverage('rippleChart', 90)">90-day Chart</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <br><br>
+                                    <div class="card">
+                                        <div style="padding: 10px;">
+                                            {% for upbit_key, upbit_value in upbit_price.items %}
+                                                {% if upbit_key == 'KRW-XRP' %}
+                                                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                                                        <div style="width: 120px;">
+                                                            <strong>현재 가격:</strong>
+                                                        </div>
+                                                        <div>
+                                                            &#8361;<span style="font-size: 18px; font-weight: bold;">{{ upbit_value }}</span>
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </h5>
+                                <canvas id="rippleChart"></canvas>
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Statistics</th>
+                                            <th>Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Standard Deviation</td>
+                                            <td>&#8361;<span id="rippleStdDev"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Mean</td>
+                                            <td>&#8361;<span id="rippleMean"></span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Volatility</td>
+                                            <td><span id="rippleVolatility"></span>%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         
+            <!-- Your JavaScript code to render the charts -->
+            <script type="text/javascript">
+                var bitcoinContext = document.getElementById('bitcoinChart').getContext('2d');
+                var ethereumContext = document.getElementById('ethereumChart').getContext('2d');
+                var rippleContext = document.getElementById('rippleChart').getContext('2d');
+                var chartData = JSON.parse('{{ chart_data|escapejs }}');
+        
+                // Render the Bitcoin chart
+                var bitcoinChart = renderChart(bitcoinContext, chartData.bitcoin_data, 'Bitcoin');
+
+// Render the Ethereum chart with initial data
+                var ethereumChart = renderChart(ethereumContext, chartData.ethereum_data, 'Ethereum');
+
+                // Render the Ripple chart with initial data
+                var rippleChart = renderChart(rippleContext, chartData.ripple_data, 'Ripple');
+
+                // Function to render a chart
+                function renderChart(context, data, label) {
+                    var minY = 0;
+                        switch (label) {
+                            case 'Bitcoin':
+                                minY = 20000000;
+                                break;
+                            case 'Ethereum':
+                                minY = 1600000;
+                                break;
+                            case 'Ripple':
+                                minY = 400;
+                                break;
+                            default:
+                                break;
+                        }
+                    return new Chart(context, {
+                        type: 'line',
+                        data: {
+                        labels: chartData.labels,
+                        datasets: [
+                            {
+                            label: label,
+                            data: data,
+                            backgroundColor: 'rgba(0, 0, 0, 0)',
+                            borderColor: 'rgba(0, 128, 0, 1)',
+                            borderWidth: 1,
+                            },
+                        ],
+                        },
+                        options: {
+                        scales: {
+                            yAxes: [
+                            {
+                                ticks: {
+                                beginAtZero: true,
+                                min: minY,
+                                },
+                            },
+                            ],
+                        },
+                        },
+                    });
+                }
+
+                // Function to show chart for a specific duration
+                function showMovingAverage(chartId, days) {
+                    var chart = null;
+
+                    // Find the selected chart
+                    switch (chartId) {
+                        case 'bitcoinChart':
+                            chart = bitcoinChart;
+                            break;
+                        case 'ethereumChart':
+                            chart = ethereumChart;
+                            break;
+                        case 'rippleChart':
+                            chart = rippleChart;
+                            break;
+                        default:
+                            break;
+                    }
+
+                    if (chart) {
+                        // Get the data for the selected duration
+                        var chartData = getChartDataForDuration(days);
+
+                        // Update the chart with the new data
+                        updateChart(chart, chartData,chartId);
+                    }
+                }
+
+                    // Function to get chart data for a specific duration
+                function getChartDataForDuration(days) {
+                    var allChartData = JSON.parse('{{ chart_data|escapejs }}');
+
+                    // Calculate the start index based on the selected duration
+                    var startIndex = allChartData.labels.length - days;
+
+                    // Create a new data object for the selected duration
+                    var chartData = {
+                        labels: allChartData.labels.slice(startIndex),
+                        bitcoin_data: allChartData.bitcoin_data.slice(startIndex),
+                        ethereum_data: allChartData.ethereum_data.slice(startIndex),
+                        ripple_data: allChartData.ripple_data.slice(startIndex),
+                    };
+                    return chartData;
+                }
+
+                    // Function to update the chart with new data
+                function updateChart(chart, newData, chartId) {
+                    chart.data.labels = newData.labels;
+                    switch (chartId) {
+                        case 'bitcoinChart':
+                            chart.data.datasets[0].data = newData.bitcoin_data;
+                            break;
+                        case 'ethereumChart':
+                            chart.data.datasets[0].data = newData.ethereum_data;
+                            break;
+                        case 'rippleChart':
+                            chart.data.datasets[0].data = newData.ripple_data;
+                            break;
+                        default:
+                            break;
+                    }
+                    chart.update();
+                }
+
+                function updateStatistics() {
+                    var chartData = getChartDataForDuration(90);
+
+                    var bitcoinData = chartData.bitcoin_data;
+                    var bitcoinStdDev = calculateStandardDeviation(bitcoinData);
+                    var bitcoinMean = calculateMean(bitcoinData);
+                    var bitcoinVolatility = calculateVolatility(bitcoinData);
+                    document.getElementById('bitcoinStdDev').textContent = formatCurrency(bitcoinStdDev);
+                    document.getElementById('bitcoinMean').textContent = formatCurrency(bitcoinMean);
+                    document.getElementById('bitcoinVolatility').textContent = bitcoinVolatility.toFixed(2);
+
+                    var ethereumData = chartData.ethereum_data;
+                    var ethereumStdDev = calculateStandardDeviation(ethereumData);
+                    var ethereumMean = calculateMean(ethereumData);
+                    var ethereumVolatility = calculateVolatility(ethereumData);
+                    document.getElementById('ethereumStdDev').textContent = formatCurrency(ethereumStdDev);
+                    document.getElementById('ethereumMean').textContent = formatCurrency(ethereumMean);
+                    document.getElementById('ethereumVolatility').textContent = ethereumVolatility.toFixed(2);
+
+                    var rippleData = chartData.ripple_data;
+                    var rippleStdDev = calculateStandardDeviation(rippleData);
+                    var rippleMean = calculateMean(rippleData);
+                    var rippleVolatility = calculateVolatility(rippleData);
+                    document.getElementById('rippleStdDev').textContent = formatCurrency(rippleStdDev);
+                    document.getElementById('rippleMean').textContent = formatCurrency(rippleMean);
+                    document.getElementById('rippleVolatility').textContent = rippleVolatility.toFixed(2);
+                }
+
+                updateStatistics('bitcoinChart');
+                updateStatistics('ethereumChart');
+                updateStatistics('rippleChart');
+
+                function calculateStandardDeviation(data) {
+                    var mean = calculateMean(data);
+                    var sum = 0;
+
+                    for (var i = 0; i < data.length; i++) {
+                        sum += Math.pow(data[i] - mean, 2);
+                    }
+
+                    var variance = sum / data.length;
+                    var stdDev = Math.sqrt(variance);
+
+                    return stdDev;
+                }
+
+                // Function to calculate the mean of an array of values
+                function calculateMean(data) {
+                    var sum = 0;
+
+                    for (var i = 0; i < data.length; i++) {
+                        sum += data[i];
+                    }
+
+                    var mean = sum / data.length;
+
+                    return mean;
+                }
+
+                // Function to calculate the volatility of an array of values
+                function calculateVolatility(data) {
+                    var sum = 0;
+
+                    for (var i = 1; i < data.length; i++) {
+                        var change_rate = (data[i] - data[i - 1])/data[i - 1] * 100;
+                        sum += Math.abs(change_rate);
+                    }
+
+                    var averageVolatility = sum / (data.length - 1);
+
+                    return averageVolatility;
+                }
+
+                function formatCurrency(value) {
+                    var intValue = Math.floor(value);
+
+                    var formattedValue = new Intl.NumberFormat('ko-KR').format(intValue);
+
+                    return formattedValue;
+                }
+            </script>
+        </div>
+        <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+        <div id="myTabContent" class="tab-content">
             <div class="tab-pane fade active show" id="upbit">
                 <table class="table table-striped" id ="myTable-upbit" data-filter-control="true" data-show-search-clear-button="true">
                     <thead>
@@ -105,7 +537,76 @@
                     {% endfor %}
                     </tbody>
                 </table>
-            </div> 
+            </div>
+            <div class="tab-pane fade" id="bithumb">
+                <table class="table table-striped" id ="myTable-bithumb" data-filter-control="true" data-show-search-clear-button="true">
+                    <thead>
+                    <tr>
+                        <th scope="col">코인</th>
+                        <th scope="col">현재가 (KRW)</th>
+                        <th scope="col">전일 대비 변동률 (%)</th>
+                        <th scope="col">거래대금 (백만)</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {}
+                    {% for bithumb_key,bithumb_value in bithumb_price.items %}
+                    <tr>
+                        <td class="td-bold">{{bithumb_key}}</td>
+                        <td>{{bithumb_value}}</td>
+                        <td>{% getvalue bithumb_changed_rate bithumb_key %}</td>
+                        <td>{% getvalue bithumb_trade_volume bithumb_key %}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="tab-pane fade" id="coinone">
+                <table class="table table-striped" id ="myTable-coinone" data-filter-control="true" data-show-search-clear-button="true">
+                    <thead>
+                    <tr>
+                        <th scope="col">코인</th>
+                        <th scope="col">현재가 (KRW)</th>
+                        <th scope="col">전일 대비 변동률 (%)</th>
+                        <th scope="col">거래대금 (백만)</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    
+                    {% for coinone_key,coinone_value in coinone_price.items %}
+                    <tr>
+                        <td class="td-bold">{{coinone_key|upper}}</td>
+                        <td>{{coinone_value}}</td>
+                        <td>{% getvalue coinone_changed_rate coinone_key %}</td>
+                        <td>{% getvalue coinone_trade_volume coinone_key %}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="tab-pane fade" id="korbit">
+                <table class="table table-striped" id ="myTable-korbit" data-filter-control="true" data-show-search-clear-button="true">
+                    <thead>
+                    <tr>
+                        <th scope="col">코인</th>
+                        <th scope="col">현재가 (KRW)</th>
+                        <th scope="col">전일 대비 변동률 (%)</th>
+                        <th scope="col">거래대금 (백만)</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    
+                    {% for korbit_key,korbit_value in korbit_price.items %}
+                    <tr>
+                        <td class="td-bold">{{korbit_key|cut:"_krw"|upper}}</td>
+                        <td>{{korbit_value}}</td>
+                        <td>{% getvalue korbit_changed_rate korbit_key %}</td>
+                        <td>{% getvalue korbit_trade_volume korbit_key %}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>    
         </div>
     </div> 
 

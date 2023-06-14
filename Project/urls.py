@@ -1,5 +1,5 @@
 """Project URL Configuration
-
+admin
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/4.1/topics/http/urls/
 Examples:
@@ -16,9 +16,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from main.views import index, realtime
+from main.views import update_chart_data
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('update_chart_data/', update_chart_data, name='update_chart_data'),
     path('', index, name='index'),
     path('realtime/', realtime, name='realtime')
 ]

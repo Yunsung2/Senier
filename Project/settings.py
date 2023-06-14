@@ -40,7 +40,6 @@ INSTALLED_APPS = [
     'main',
     'requests',
     'mathfilters', 
-    'channels'
 ]
 
 MIDDLEWARE = [
